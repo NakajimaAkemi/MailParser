@@ -1,6 +1,6 @@
-fastapi==0.109.0
-uvicorn[standard]==0.27.0
-pydantic==2.5.3
-litellm==1.17.9
-oci==2.119.1
-pyyaml==6.0.1
+fastapi
+uvicorn[standard]
+pydantic
+litellm
+oci
+pyyaml
