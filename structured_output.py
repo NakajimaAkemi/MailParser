@@ -8,13 +8,15 @@ class ParsedEmail(BaseModel):
     CUSTOMER_OPERATOR: str = Field(..., description="Email address of the customer")
     TOPIC: str = Field(..., description="Topic of the email")
     MAIL_DATE: str = Field(..., description="Date of the email in YYYY-MM-DD format")
-    FULL_BODY: str = Field(..., description="Full body content of the email")
+    
 
 class ParsedEmailList(BaseModel):
     emails: List[ParsedEmail] = Field(..., description="List of parsed email entries")
+    FULL_BODY: str = Field(..., description="Full body content of the email")
 
     
 class EmailRequest(BaseModel):
     email_body: str = Field(..., description="Full raw email body to parse")
+    
 
 
