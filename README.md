@@ -20,7 +20,7 @@ FastAPI-based email parsing service using LLM for structured data extraction.
 ├── llm_client.py           # LLM client with OCI integration
 ├── structured_output.py    # Pydantic models
 ├── prompt.md               # LLM prompts
-├── config/                 # OCI config directory (to be mounted)
+├── app/config/            # OCI config directory (to be mounted)
 │   ├── config             # OCI config file
 │   └── oci_api_key.pem    # OCI private key
 └── config.yaml            # Application config
