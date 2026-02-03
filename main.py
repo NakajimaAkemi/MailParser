@@ -33,7 +33,7 @@ async def startup_event():
     try:
         # Initialize LLMClient with proper paths
         oci_config_path = Path("app/config/config")
-        app_config_path = Path("app/config.yaml")
+        app_config_path = Path("app/config/config.yaml")
         
         llm = LLMClient(OciPath=oci_config_path, configPath=app_config_path)
         logger.info("LLMClient initialized successfully")
@@ -101,5 +101,6 @@ async def parse_email(request: EmailRequest):
         # Log full stack trace
         logger.exception("Unexpected error while parsing email")
         raise HTTPException(status_code=500, detail="Internal server error")
+
 
 
