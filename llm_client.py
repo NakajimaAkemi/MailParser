@@ -8,11 +8,9 @@ from typing import Optional
 import json
 import os
 import re
-import yaml
-
 
 class LLMClient:
-    def __init__(self, OciPath:Path,configPath:Path):
+    def __init__(self, OciPath:Path):
         os.environ["OCI_CONFIG_FILE"] = str(OciPath)
         os.environ["OCI_CLI_PROFILE"] = "DEFAULT"
         self.config = from_file()
@@ -23,14 +21,11 @@ class LLMClient:
             private_key_file_location=self.config["key_file"],
             pass_phrase=self.config.get("pass_phrase", None),
         )
-        with open(configPath, 'r') as f:
-            data = yaml.full_load(f)
-            self.model= data.get("model")
-            self.oci_compartment_id = data.get("oci_compartment_id")
+        self.model=self.config["model"]
+        self.oci_compartment_id = self.config["oci_compartment_id"]
         print(f"Model: {self.model}")
         print(f"OCI Compartment ID: {self.oci_compartment_id}")
         
-
     def _clean_json_response(self, content: str) -> str:
         """Clean up JSON response by extracting valid JSON"""
         content = content.strip()
@@ -196,7 +191,6 @@ class LLMClient:
 
         # 6. Return headers + cleaned body
         return f"{headers.strip()}\n\n{body}"
-
 
 
     def complete(self, email: EmailRequest, max_retries=3) -> ParsedEmailList:

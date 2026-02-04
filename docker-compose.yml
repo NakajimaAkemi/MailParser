@@ -7,16 +7,5 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      # Mount your OCI config directory
-      - ./config:/app/config:ro
-      # Mount config.yaml
-      - ./config.yaml:/app/config.yaml:ro
-    environment:
-      - PYTHONUNBUFFERED=1
+      - ./app/config:/app/config:ro
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s

@@ -1,12 +1,16 @@
 # Email Parser API
 
-FastAPI-based email parsing service using LLM for structured data extraction.
+FastAPI-based email parsing service using LLM for structured data extraction with Oracle Cloud Infrastructure (OCI).
+
+---
 
 ## Prerequisites
 
-- Docker and Docker Compose installed
-- OCI configuration files (for Oracle Cloud authentication)
-- `config.yaml` with model and compartment configuration
+* Docker
+* Docker Compose
+* OCI credentials (config + private key)
+
+---
 
 ## Project Structure
 
@@ -20,84 +24,128 @@ FastAPI-based email parsing service using LLM for structured data extraction.
 ├── llm_client.py           # LLM client with OCI integration
 ├── structured_output.py    # Pydantic models
 ├── prompt.md               # LLM prompts
-├── app/config/            # OCI config directory (to be mounted)
-│   ├── config             # OCI config file
-│   ├── oci_api_key.pem    # OCI private key
-└── └───config.yaml            # Application config
+└── app/config/
+    ├── config               # OCI config file (includes model and compartment_id)
+    └── oci_api_key.pem      # OCI private key
 ```
+
+---
 
 ## Configuration
 
-### 1. Create `config.yaml`
+### OCI Configuration (Local Project)
 
-```yaml
-model: "oci/cohere.command-r-plus"  # or your preferred model
-oci_compartment_id: "ocid1.compartment.oc1..xxxxx"
+The project expects the OCI configuration to be located **inside the repository** at:
+
+```
+./app/config
 ```
 
-### 2. Prepare OCI Configuration
+This directory is mounted into the container at:
 
-Place your OCI configuration files in a `config/` directory:
-
-- `config/config` - OCI CLI config file
-- `config/oci_api_key.pem` - Your OCI private key
-
-Example OCI config file:
 ```
+/app/config
+```
+
+Make sure you have:
+
+* `app/config/config` — OCI CLI config file
+* `app/config/oci_api_key.pem` — OCI private key
+
+---
+
+### OCI config example (`app/config/config`)
+
+```ini
 [DEFAULT]
 user=ocid1.user.oc1..xxxxx
 fingerprint=xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx
-key_file=/app/config/oci_api_key.pem
 tenancy=ocid1.tenancy.oc1..xxxxx
-region=us-ashburn-1
+region=eu-frankfurt-1
+key_file=/app/config/oci_api_key.pem
+
+# LLM specific settings
+model=oci/cohere.command-a-03-2025
+oci_compartment_id=ocid1.compartment.oc1..xxxxx
 ```
+
+### Important Notes
+
+* `key_file` **must** use the container path:
+
+  ```
+  /app/config/oci_api_key.pem
+  ```
+* Do **not** use quotes around `model` and `oci_compartment_id`
+* `config.yaml` is **not used**
+
+---
 
 ## Building and Running
 
 ### Using Docker Compose (Recommended)
 
 ```bash
-# Build and start the service
 docker-compose up -d --build
+```
 
-# View logs
+### View logs
+
+```bash
 docker-compose logs -f
+```
 
-# Stop the service
+### Stop the service
+
+```bash
 docker-compose down
 ```
 
-### Using Docker directly
+---
+
+## Running with Docker only
 
 ```bash
-# Build the image
+# Build image
 docker build -t email-parser-api .
 
-# Run the container
+# Run container
 docker run -d \
   -p 8000:8000 \
-  -v $(pwd)/config:/app/config:ro \
-  -v $(pwd)/config.yaml:/app/config.yaml:ro \
+  -v ./app/config:/app/config:ro \
   --name email-parser-api \
   email-parser-api
 
-# View logs
+# Logs
 docker logs -f email-parser-api
 
-# Stop the container
+# Stop & remove
 docker stop email-parser-api
 docker rm email-parser-api
 ```
+
+---
 
 ## API Usage
 
 ### Interactive Documentation
 
-Once running, access the interactive API docs at:
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
+Once running:
 
-### Example Request
+* Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
+* ReDoc: [http://localhost:8000/redoc](http://localhost:8000/redoc)
+
+---
+
+## Endpoints
+
+* `GET /` — Root endpoint
+* `GET /health` — Health check
+* `POST /parse-email` — Parse email content
+
+---
+
+## Example Request
 
 ```bash
 curl -X POST "http://localhost:8000/parse-email" \
@@ -107,7 +155,9 @@ curl -X POST "http://localhost:8000/parse-email" \
   }'
 ```
 
-### Example Response
+---
+
+## Example Response
 
 ```json
 {
@@ -117,53 +167,55 @@ curl -X POST "http://localhost:8000/parse-email" \
       "MAIL_TYPE": "TO",
       "CUSTOMER_OPERATOR": "john.doe@example.com",
       "TOPIC": "Order Issue",
-      "MAIL_DATE": "2024-01-15",
-      "FULL_BODY": "Hello,\n\nI have an issue with my recent order #12345.\n\nBest regards,\nJohn Doe"
+      "MAIL_DATE": "2024-01-15"
     }
-  ]
+  ],
+  "FULL_BODY": "Hello,\n\nI have an issue with my recent order #12345.\n\nBest regards,\nJohn Doe"
 }
 ```
 
-## Troubleshooting
+---
 
-### Check if service is running
-```bash
-docker ps | grep email-parser-api
-```
-
-### Check logs
-```bash
-docker-compose logs -f email-parser-api
-```
-
-### Test health endpoint
-```bash
-curl http://localhost:8000/docs
-```
-
-### Common Issues
-
-1. **OCI Authentication Errors**: Verify your OCI config file paths and credentials
-2. **Model Not Found**: Check that the model name in `config.yaml` is correct
-3. **Port Already in Use**: Change the port mapping in `docker-compose.yml`
-
-## Development
-
-To run locally without Docker:
+## Development (Without Docker)
 
 ```bash
-# Create virtual environment
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate   # Windows: venv\Scripts\activate
 
-# Install dependencies
 pip install -r requirements.txt
 
-# Run the application
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-## Notes
+---
 
-- The LLMClient initialization in `main.py` needs to be updated to pass the config paths
-- Update the `startup_event` function to: `llm = LLMClient(OciPath=Path("config/config"), configPath=Path("config.yaml"))`
+## Security Best Practices
+
+Add to `.gitignore`:
+
+```gitignore
+app/config/config
+app/config/oci_api_key.pem
+```
+
+---
+
+## Troubleshooting
+
+### OCI Authentication Errors
+
+* Check `app/config/config`
+* Check `app/config/oci_api_key.pem`
+* Verify `key_file=/app/config/oci_api_key.pem`
+
+### Model Not Found
+
+* Verify `model` value
+* Check region compatibility
+
+### Compartment Errors
+
+* Verify `oci_compartment_id`
+* Check permissions on compartment
+
+---
