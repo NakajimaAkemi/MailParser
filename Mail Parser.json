@@ -1,0 +1,988 @@
+{
+  "name": "Mail Parser",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -960,
+        112
+      ],
+      "id": "92fc3f09-8fba-48ac-8413-f09ce675db6c",
+      "name": "Download file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "rw1p7dvSxC216oCk",
+          "name": "Google Drive account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -784,
+        96
+      ],
+      "id": "6a33e905-bdfa-4687-add5-90ad704a9158",
+      "name": "Extract from File",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "name": "={{ $('Loop Over Items').item.json.subfolders }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1TENSAnrzbZLSc3v1y02p9soa17E3iaXk",
+          "mode": "list",
+          "cachedResultName": "emails",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1TENSAnrzbZLSc3v1y02p9soa17E3iaXk"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -1216,
+        816
+      ],
+      "id": "aa5bccbe-735f-462a-a758-e2b1ff2cf966",
+      "name": "Create folder",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "rw1p7dvSxC216oCk",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a171a81d-46ac-47e4-864e-393bcde05955",
+              "leftValue": "={{ $json }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1600,
+        768
+      ],
+      "id": "701ea9c3-0c9b-4ccc-a534-7f36d225d1fa",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"subfolders\":[\"success\",\"failed\",\"processing\"],\n  \"main_folder\":\"emails\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2432,
+        576
+      ],
+      "id": "90d5d609-0472-43e9-bf40-5726850f639d",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "batchSize": "=1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -2000,
+        576
+      ],
+      "id": "82f18e7b-33d7-4b9e-8bd5-9e564088c737",
+      "name": "Loop Over Items",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "subfolders",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -2240,
+        576
+      ],
+      "id": "12f73f5b-349e-427d-b64c-9c2ce05ffd43",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "queryString": "={{ $json.subfolders }}",
+        "returnAll": true,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "1TENSAnrzbZLSc3v1y02p9soa17E3iaXk",
+            "mode": "list",
+            "cachedResultName": "emails",
+            "cachedResultUrl": "https://drive.google.com/drive/folders/1TENSAnrzbZLSc3v1y02p9soa17E3iaXk"
+          },
+          "whatToSearch": "folders"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -1792,
+        672
+      ],
+      "id": "0a858fa2-2f9e-4d1f-b687-e0f8bed426ca",
+      "name": "Check Subfolder",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "rw1p7dvSxC216oCk",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "move",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('Loop Over Emails').item.json.id }}",
+          "mode": "id"
+        },
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Aggregate').item.json.data[1][' failed'] }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        816,
+        608
+      ],
+      "id": "4d8b4f25-66f8-412a-97db-8fe6f35f1534",
+      "name": "Move to Failed",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "rw1p7dvSxC216oCk",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "move",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('Loop Over Emails').item.json.id }}",
+          "mode": "id"
+        },
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Aggregate').item.json.data[0][' success'] }}",
+          "mode": "id"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        976,
+        192
+      ],
+      "id": "f473a420-96fa-48c7-a824-8596e8e5255b",
+      "name": "Move to Success",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "rw1p7dvSxC216oCk",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \" {{ $json.name }}\":{{ $json.id }},\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1088,
+        912
+      ],
+      "id": "1058bb72-ce85-4318-ad92-81f854b98420",
+      "name": "fetch id"
+    },
+    {
+      "parameters": {
+        "aggregate": "=",
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {}
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        -1872,
+        112
+      ],
+      "id": "34576c7c-5ad6-404b-84a2-00532ac6a112",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "operation": "move",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Aggregate').item.json.data[2][' processing'] }}",
+          "mode": "id"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -1136,
+        128
+      ],
+      "id": "012afdaf-4f33-4f9d-ad35-b91cf5f52e72",
+      "name": "Move to Processing",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "rw1p7dvSxC216oCk",
+          "name": "Google Drive account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -3264,
+        560
+      ],
+      "id": "bf73ee61-e719-410d-ae2b-ec49e55dd1d7",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a171a81d-46ac-47e4-864e-393bcde05955",
+              "leftValue": "={{ $json }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -2816,
+        560
+      ],
+      "id": "5cca9de0-bf63-41fb-9f40-5e85be720562",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "queryString": "=emails",
+        "returnAll": true,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "root",
+            "mode": "list",
+            "cachedResultName": "/ (Root folder)",
+            "cachedResultUrl": "https://drive.google.com/drive"
+          },
+          "whatToSearch": "folders"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -3040,
+        560
+      ],
+      "id": "a99424d4-5a41-4ded-afbe-6356f348bff9",
+      "name": "Check Main Folder",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "rw1p7dvSxC216oCk",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "name": "=emails",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1TENSAnrzbZLSc3v1y02p9soa17E3iaXk",
+          "mode": "list",
+          "cachedResultName": "emails",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1TENSAnrzbZLSc3v1y02p9soa17E3iaXk"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -2432,
+        368
+      ],
+      "id": "08833431-fe6e-457e-b18a-5e229fc78568",
+      "name": "Create Main folder",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "rw1p7dvSxC216oCk",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "batchSize": "=1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -1344,
+        112
+      ],
+      "id": "238eae98-7fed-4693-b395-42bd413fbd37",
+      "name": "Loop Over Emails",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "queryString": ".eml",
+        "returnAll": true,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "={{ $('Check Main Folder').item.json.id }}",
+            "mode": "id"
+          },
+          "whatToSearch": "files"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -1696,
+        112
+      ],
+      "id": "2d7495b5-7147-4874-a362-25374af3e13b",
+      "name": "Check Emails",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "rw1p7dvSxC216oCk",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "id",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -1536,
+        112
+      ],
+      "id": "76c258c2-5ff0-4dc2-9305-19ed31bf667d",
+      "name": "Split Out1",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "value": "WKSP_UNI08",
+          "mode": "list",
+          "cachedResultName": "WKSP_UNI08"
+        },
+        "table": {
+          "__rl": true,
+          "value": "CUSTOMERS",
+          "mode": "list",
+          "cachedResultName": "CUSTOMERS"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "TOPIC": "={{ $json.emails.TOPIC }}",
+            "MAIL_TYPE": "={{ $json.emails.MAIL_TYPE }}",
+            "CUSTOMER_OPERATOR": "={{ $json.emails.CUSTOMER_OPERATOR }}",
+            "CUSTOMER_NAME": "={{ $json.emails.CUSTOMER_NAME }}",
+            "FULL_BODY": "={{ $json.EMAIL_BODY }}",
+            "MAIL_DATE": "={{ $json.emails.MAIL_DATE }}"
+          },
+          "matchingColumns": [
+            "CUSTOMER_NAME",
+            "CUSTOMER_OPERATOR",
+            "FULL_BODY",
+            "ID",
+            "INSERT_DATE",
+            "MAIL_DATE",
+            "MAIL_TYPE",
+            "TOPIC"
+          ],
+          "schema": [
+            {
+              "id": "CUSTOMER_NAME",
+              "displayName": "CUSTOMER_NAME",
+              "required": true,
+              "display": true,
+              "type": "string",
+              "defaultMatch": true,
+              "removed": false
+            },
+            {
+              "id": "CUSTOMER_OPERATOR",
+              "displayName": "CUSTOMER_OPERATOR",
+              "required": true,
+              "display": true,
+              "type": "string",
+              "defaultMatch": true,
+              "removed": false
+            },
+            {
+              "id": "FULL_BODY",
+              "displayName": "FULL_BODY",
+              "required": false,
+              "display": true,
+              "type": "string",
+              "defaultMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ID",
+              "displayName": "ID",
+              "required": false,
+              "display": true,
+              "type": "number",
+              "defaultMatch": true,
+              "removed": true
+            },
+            {
+              "id": "INSERT_DATE",
+              "displayName": "INSERT_DATE",
+              "required": false,
+              "display": true,
+              "type": "dateTime",
+              "defaultMatch": true,
+              "removed": true
+            },
+            {
+              "id": "MAIL_DATE",
+              "displayName": "MAIL_DATE",
+              "required": false,
+              "display": true,
+              "type": "dateTime",
+              "defaultMatch": true,
+              "removed": false
+            },
+            {
+              "id": "MAIL_TYPE",
+              "displayName": "MAIL_TYPE",
+              "required": true,
+              "display": true,
+              "type": "string",
+              "defaultMatch": true,
+              "removed": false
+            },
+            {
+              "id": "TOPIC",
+              "displayName": "TOPIC",
+              "required": false,
+              "display": true,
+              "type": "string",
+              "defaultMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.oracleDatabase",
+      "typeVersion": 1,
+      "position": [
+        -112,
+        80
+      ],
+      "id": "373d6ceb-5acd-4fe4-b85b-915895737ec4",
+      "name": "Insert rows in a table",
+      "credentials": {
+        "oracleDBApi": {
+          "id": "KhGw6Hj0gI1GxUPA",
+          "name": "Oracle Database Credentials account 2"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://162.19.143.55:18080/parse-email",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "email_body",
+              "value": "={{ $json.data }}"
+            }
+          ]
+        },
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -544,
+        80
+      ],
+      "id": "f40111a2-a43d-4211-84ae-070bd3b70ae7",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "emails, EMAIL_BODY",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -304,
+        80
+      ],
+      "id": "724017a1-a7a1-4429-bef7-b9b49925d9cf",
+      "name": "Split Out2",
+      "alwaysOutputData": false
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Move to Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Move to Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Create folder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "fetch id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create folder": {
+      "main": [
+        [
+          {
+            "node": "fetch id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check Subfolder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Subfolder": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fetch id": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Check Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Move to Processing": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Move to Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Check Main Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Main Folder": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Create Main folder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Emails": {
+      "main": [
+        [
+          {
+            "node": "Split Out1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Emails": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Move to Processing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Move to Failed": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Move to Success": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert rows in a table": {
+      "main": [
+        [
+          {
+            "node": "Move to Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Move to Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Split Out2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out2": {
+      "main": [
+        [
+          {
+            "node": "Insert rows in a table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "bef450df-3e45-46bc-94e0-523fe3d22b00",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "53f156fed0df24b32f07ebabc45036396ae9ac051df73849e0802e58d8b961a2"
+  },
+  "id": "VGBBr4kNzFnD8dFn",
+  "tags": []
+}
