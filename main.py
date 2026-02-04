@@ -4,7 +4,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from llm_client import LLMClient
-from structured_output import ParsedEmailList, EmailRequest
+from structured_output import ParsedEmailList, EmailRequest, EmailResponse
 
 # ------------------------
 # Logging Configuration
@@ -68,7 +68,7 @@ async def health_check():
     return {"status": "healthy"}
 
 
-@app.post("/parse-email", response_model=ParsedEmailList)
+@app.post("/parse-email", response_model=EmailResponse)
 async def parse_email(request: EmailRequest):
     logger.info("Received /parse-email request")
 

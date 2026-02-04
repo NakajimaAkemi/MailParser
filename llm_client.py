@@ -21,7 +21,7 @@ class LLMClient:
             private_key_file_location=self.config["key_file"],
             pass_phrase=self.config.get("pass_phrase", None),
         )
-        self.model=self.config["model"]
+        self.model=f"oci/{self.config["model"]}"
         self.oci_compartment_id = self.config["oci_compartment_id"]
         print(f"Model: {self.model}")
         print(f"OCI Compartment ID: {self.oci_compartment_id}")
@@ -96,7 +96,6 @@ class LLMClient:
 
         return content    
 
-
     def _extract_section(self,content: str, section_name: str) -> str:
         """
         Extract a specific section from markdown content by header name.
@@ -143,54 +142,101 @@ class LLMClient:
             raise ValueError(f"Section '{section_name}' not found in markdown file")
 
         return "\n".join(section_lines).strip()
+    
 
-
-    def extract_first_email(self,raw_email: str) -> str:
+    def strip_base64_attachments(self,email_raw):
         """
-        Returns the first (latest) email including headers and body.
-        Attachments, base64 blobs, and quoted messages are removed.
+        Rimuove allegati base64 in modo robusto.
+        Funziona con qualsiasi formato MIME.
         """
+        # Pattern: Content-Transfer-Encoding: base64 seguito da dati base64
+        # fino al prossimo boundary (che inizia con --)
+        pattern = r'(Content-Transfer-Encoding:\s*base64\s*\n)([\s\S]*?)(?=\n--)'
+        
+        def replace_base64(match):
+            header = match.group(1)
+            # Conta quante righe di base64 c'erano
+            base64_lines = match.group(2).strip().split('\n')
+            removed_size = sum(len(line) for line in base64_lines)
+            return f"{header}\n[BASE64 REMOVED - {len(base64_lines)} lines, ~{removed_size} bytes]\n"
+        
+        cleaned = re.sub(pattern, replace_base64, email_raw)
+        return cleaned
 
-        # 1. Split headers and body
-        parts = raw_email.split("\n\n", 1)
-        headers = parts[0]
-        body = parts[1] if len(parts) > 1 else ""
 
-        # 2. Remove MIME/base64 noise
-        body = re.sub(
-            r"Content-Transfer-Encoding:\s*base64.*?={2,}",
-            "",
-            body,
-            flags=re.IGNORECASE | re.DOTALL,
-        )
+    def strip_base64_simple(self,email_raw):
+        """
+        Versione ancora più semplice: rimuove tutto tra 
+        'Content-Transfer-Encoding: base64' e il prossimo boundary
+        """
+        lines = email_raw.split('\n')
+        result = []
+        skip = False
+        removed_lines = 0
+        
+        for line in lines:
+            # Inizia a skippare dopo "Content-Transfer-Encoding: base64"
+            if 'Content-Transfer-Encoding: base64' in line:
+                result.append(line)
+                result.append(f'[BASE64 DATA REMOVED - see next boundary]')
+                skip = True
+                removed_lines = 0
+                continue
+            
+            # Ferma lo skip al prossimo boundary
+            if skip and line.startswith('--'):
+                skip = False
+                result.append(f'[{removed_lines} lines removed]')
+                result.append(line)
+                continue
+            
+            # Skippa le righe base64
+            if skip:
+                removed_lines += 1
+                continue
+            
+            # Aggiungi tutte le altre righe
+            result.append(line)
+        
+        return '\n'.join(result)
 
-        body = re.sub(
-            r"Content-Type:\s*(image|application)/.*?(\n\n|\Z)",
-            "",
-            body,
-            flags=re.IGNORECASE | re.DOTALL,
-        )
 
-        # 3. Cut quoted replies (English + Italian + Outlook)
-        quote_markers = [
-            r"^On .* wrote:.*",
-            r"^Il .* ha scritto:.*",
-            r"^-{2,}\s*Original Message\s*-{2,}",
-            r"^From:.*\nSent:.*",
-            r"^Da:.*\nInviato:.*",
-        ]
+    def clean_email_for_llm(self,email_raw, max_chars=8000):
+        """
+        Versione completa: rimuove base64 E tronca se necessario
+        """
+        # Step 1: Rimuovi base64
+        cleaned = self.strip_base64_simple(email_raw)
+        
+        # Step 2: Se ancora troppo grande, tronca
+        if len(cleaned) > max_chars:
+            lines = cleaned.split('\n')
+            
+            # Trova dove finiscono gli header
+            header_end = 0
+            for i, line in enumerate(lines):
+                if line.strip() == '' or line.startswith('--'):
+                    header_end = i
+                    break
+            
+            # Mantieni header completi
+            header = '\n'.join(lines[:header_end + 5])
+            
+            # Prendi solo prime righe del body
+            remaining_chars = max_chars - len(header)
+            body_lines = lines[header_end + 5:]
+            
+            body = ''
+            for line in body_lines:
+                if len(body) + len(line) > remaining_chars:
+                    break
+                body += line + '\n'
+            
+            cleaned = header + '\n' + body + '\n[...TRUNCATED FOR LENGTH...]'
+        
+        return cleaned
+    
 
-        for marker in quote_markers:
-            body = re.split(marker, body, flags=re.IGNORECASE | re.MULTILINE)[0]
-
-        # 4. Remove signatures
-        body = re.split(r"\n--\s*\n", body)[0]
-
-        # 5. Normalize whitespace
-        body = re.sub(r"\n{3,}", "\n\n", body).strip()
-
-        # 6. Return headers + cleaned body
-        return f"{headers.strip()}\n\n{body}"
 
 
     def complete(self, email: EmailRequest, max_retries=3) -> ParsedEmailList:
@@ -205,8 +251,9 @@ class LLMClient:
             ParsedEmailList: Structured parsed email data
         """
         # Extract the actual email string from the EmailRequest object
-        mail = self.extract_first_email(email.email_body)
-        
+
+        mail = self.clean_email_for_llm(email.email_body,2000)
+        print(mail)
         # Fetch prompts
         prompt = self.fetch_prompt(Path("prompt.md"), "MAIL PARSER", email=mail)
         pydantic_portion = self.fetch_prompt(
@@ -215,7 +262,6 @@ class LLMClient:
             format=json.dumps(ParsedEmailList.model_json_schema(), indent=2)
         )
         final_prompt = prompt + "\n\n" + pydantic_portion
-        
         messages = [{"role": "user", "content": final_prompt}]
         
         for i in range(max_retries):
@@ -235,15 +281,12 @@ class LLMClient:
                 json_data = json.loads(content_cleaned)
                 result = ParsedEmailList.model_validate(json_data)
                 print(f"Successfully parsed email on attempt {i + 1}")
-                return result
+                return {"emails":result.emails,"EMAIL_BODY":mail}
                 
             except Exception as e:
                 print(f"Error on attempt {i + 1}: {e}")
                 if i < max_retries - 1:  # Don't append error on last attempt
-                    messages.append({
-                        "role": "assistant", 
-                        "content": "I encountered an error. Let me try again."
-                    })
+                    print(f"Error {e}")
                     messages.append({
                         "role": "user", 
                         "content": f"Previous attempt failed with error: {str(e)}. Please provide valid JSON matching the schema."
