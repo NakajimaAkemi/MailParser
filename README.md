@@ -33,6 +33,15 @@ FastAPI-based email parsing service using LLM for structured data extraction wit
 
 ## Configuration
 
+### Download private key and config file
+
+ - Login to OCI Console -> Identity & security -> Users
+ - Select user -> API Keys -> Add API Key
+ - Generate private Key
+ - Dowload both the `.pem` and the config file
+ - Compile the config file's field "key_file" with the path of the .pem you just dowloaded
+
+
 ### OCI Configuration (Local Project)
 
 The project expects the OCI configuration to be located **inside the repository** at:
@@ -65,7 +74,7 @@ region=eu-frankfurt-1
 key_file=/app/config/oci_api_key.pem
 
 # LLM specific settings
-model=oci/cohere.command-a-03-2025
+model=cohere.command-a-03-2025
 oci_compartment_id=ocid1.compartment.oc1..xxxxx
 ```
 
@@ -76,9 +85,6 @@ oci_compartment_id=ocid1.compartment.oc1..xxxxx
   ```
   /app/config/oci_api_key.pem
   ```
-* Do **not** use quotes around `model` and `oci_compartment_id`
-* `config.yaml` is **not used**
-
 ---
 
 ## Building and Running
@@ -111,7 +117,7 @@ docker build -t email-parser-api .
 
 # Run container
 docker run -d \
-  -p 8000:8000 \
+  -p 8080:8080 \
   -v ./app/config:/app/config:ro \
   --name email-parser-api \
   email-parser-api
@@ -132,8 +138,8 @@ docker rm email-parser-api
 
 Once running:
 
-* Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
-* ReDoc: [http://localhost:8000/redoc](http://localhost:8000/redoc)
+* Swagger UI: [http://localhost:8080/docs](http://localhost:8080/docs)
+* ReDoc: [http://localhost:8080/redoc](http://localhost:8080/redoc)
 
 ---
 
@@ -148,7 +154,7 @@ Once running:
 ## Example Request
 
 ```bash
-curl -X POST "http://localhost:8000/parse-email" \
+curl -X POST "http://localhost:8080/parse-email" \
   -H "Content-Type: application/json" \
   -d '{
     "email_body": "From: john.doe@example.com\nTo: support@company.com\nSubject: Order Issue\nDate: 2024-01-15\n\nHello,\n\nI have an issue with my recent order #12345.\n\nBest regards,\nJohn Doe"
@@ -184,7 +190,7 @@ source venv/bin/activate   # Windows: venv\Scripts\activate
 
 pip install -r requirements.txt
 
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+uvicorn main:app --reload --host 0.0.0.0 --port 8080
 ```
 
 ---
